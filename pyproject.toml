@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "group-i-intron-designer"
+version = "0.1.0"
+description = "Design site-directed mutagenesis primers for group I intron P1/P1ex retargeting"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Rafael"},
+]
+
+[project.optional-dependencies]
+webapp = ["streamlit>=1.30"]
+
+[project.scripts]
+group-i-intron-designer = "group_i_intron_designer.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["group_i_intron_designer*"]
+
+[tool.setuptools.package-data]
+"group_i_intron_designer" = ["data/subtype_CMs/*.cm"]
+
+[tool.pytest.ini_options]
+testpaths = ["group_i_intron_designer/tests"]
