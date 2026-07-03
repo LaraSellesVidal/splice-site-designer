@@ -14,6 +14,11 @@ authors = [
 
 [project.optional-dependencies]
 webapp = ["streamlit>=1.30"]
+# Enables thermodynamic P1/P10 scoring (ViennaRNA duplex free energies +
+# composition-controlled exon specificity).  Optional: the pipeline degrades
+# gracefully to no scores when ViennaRNA is absent.
+thermo = ["ViennaRNA>=2.5"]
+all = ["streamlit>=1.30", "ViennaRNA>=2.5"]
 
 [project.scripts]
 group-i-intron-designer = "group_i_intron_designer.cli:main"

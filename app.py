@@ -98,6 +98,25 @@ with st.sidebar:
         p10_offset = st.number_input("P10 offset (nt)", min_value=0, max_value=20, value=4)
         target_tm = st.number_input("Target annealing Tm (C)", min_value=40.0, max_value=80.0, value=60.0, step=1.0)
 
+        st.markdown("---")
+        assess_thermo = st.checkbox(
+            "Thermodynamic P1/P10 scoring (ViennaRNA)",
+            value=True,
+            help=(
+                "Score the designed P1/P10 helices for stability and "
+                "composition-controlled exon specificity. Skipped if ViennaRNA "
+                "is not installed."
+            ),
+        )
+        validate_construct = st.checkbox(
+            "Re-validate retargeted construct (cmscan)",
+            value=False,
+            help=(
+                "Rebuild the retargeted intron and re-run cmscan to confirm it "
+                "still classifies as the expected subtype (slower; extra CM scan)."
+            ),
+        )
+
     run_clicked = st.button("Run Design", type="primary", use_container_width=True)
 
 
@@ -196,7 +215,17 @@ try:
         target_tm=target_tm,
         analysis=analysis,
     )
-    report = designer.run()
+    if validate_construct:
+        with st.spinner("Re-validating retargeted construct with cmscan..."):
+            report = designer.run(
+                assess_thermodynamics=assess_thermo,
+                validate_construct=True,
+            )
+    else:
+        report = designer.run(
+            assess_thermodynamics=assess_thermo,
+            validate_construct=False,
+        )
 except Exception as exc:
     st.error(f"Design error: {exc}")
     st.stop()

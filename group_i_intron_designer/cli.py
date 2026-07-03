@@ -95,6 +95,23 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Target annealing Tm for primers in °C (default: 60.0).",
     )
     parser.add_argument(
+        "--no-thermo",
+        dest="thermo",
+        action="store_false",
+        help=(
+            "Disable ViennaRNA thermodynamic scoring of the P1/P10 helices "
+            "(on by default; skipped if ViennaRNA is absent)."
+        ),
+    )
+    parser.add_argument(
+        "--validate-construct",
+        action="store_true",
+        help=(
+            "Rebuild the retargeted intron and re-run cmscan to confirm the "
+            "subtype (requires Infernal; adds one CM scan)."
+        ),
+    )
+    parser.add_argument(
         "--format",
         choices=["text", "json"],
         default="text",
@@ -178,7 +195,12 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     try:
-        report = designer.run()
+        if args.validate_construct:
+            print("Re-validating retargeted construct with cmscan...", file=sys.stderr)
+        report = designer.run(
+            assess_thermodynamics=args.thermo,
+            validate_construct=args.validate_construct,
+        )
     except Exception as exc:
         print(f"Error during design: {exc}", file=sys.stderr)
         return 2

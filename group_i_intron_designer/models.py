@@ -116,6 +116,27 @@ class LibraryInfo:
 
 
 @dataclass
+class ThermodynamicAssessment:
+    """Thermodynamic scoring of the designed P1/P10 helices.
+
+    Duplex free energies, stability labels, and composition-controlled specificity
+    margins (see thermodynamics.py). Numeric fields are None if ViennaRNA is not
+    installed.
+    """
+
+    viennarna_available: bool
+    p1_dg: float | None
+    p1_stability: str
+    p1_specificity_margin: float | None
+    p1_frac_random_stronger: float | None
+    p10_dg: float | None
+    p10_stability: str
+    p10_specificity_margin: float | None
+    p10_frac_random_stronger: float | None
+    warnings: list[str] = field(default_factory=list)
+
+
+@dataclass
 class DesignReport:
     """Complete output of a design run."""
 
@@ -127,3 +148,6 @@ class DesignReport:
     reverse_primer: Primer
     library: LibraryInfo | None  # None when mode = none
     warnings: list[str] = field(default_factory=list)
+    # Optional, additive assessments (None when the feature is disabled/unavailable).
+    thermodynamics: ThermodynamicAssessment | None = None
+    construct_validation: "ConstructValidation | None" = None

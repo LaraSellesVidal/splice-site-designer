@@ -230,6 +230,65 @@ def format_text_report(report: DesignReport) -> str:
         )
         lines.append("")
 
+    # ── Thermodynamic Assessment ──
+    if report.thermodynamics is not None:
+        t = report.thermodynamics
+        lines.append(_header("Thermodynamic Assessment (P1 / P10)"))
+        lines.append("")
+        if not t.viennarna_available:
+            lines.append(
+                "  ViennaRNA not installed; scores unavailable "
+                "(pip install ViennaRNA to enable)."
+            )
+        else:
+            def _dg(v: float | None) -> str:
+                return f"{v:+.1f} kcal/mol" if v is not None else "n/a"
+
+            def _margin(m: float | None, frac: float | None) -> str:
+                if m is None:
+                    return "n/a"
+                return f"{m:+.1f} kcal/mol vs random (P_random≤real = {frac:.2f})"
+
+            lines.append(
+                f"  P1  (IGS·5' exon):   {_dg(t.p1_dg):>16s}   [{t.p1_stability}]"
+            )
+            lines.append(
+                f"    exon-specificity:  {_margin(t.p1_specificity_margin, t.p1_frac_random_stronger)}"
+            )
+            lines.append(
+                f"  P10 (P1ex·3' exon):  {_dg(t.p10_dg):>16s}   [{t.p10_stability}]"
+            )
+            lines.append(
+                f"    exon-specificity:  {_margin(t.p10_specificity_margin, t.p10_frac_random_stronger)}"
+            )
+            lines.append("")
+            lines.append(
+                "  Note: scores rank designs; they do not predict splicing. "
+                "Use the P1ex"
+            )
+            lines.append("  library selection as the functional test.")
+        lines.append("")
+
+    # ── Construct Re-validation ──
+    if report.construct_validation is not None and report.construct_validation.performed:
+        cv = report.construct_validation
+        lines.append(_header("Retargeted Construct Re-validation (cmscan)"))
+        lines.append("")
+        status = "PASS" if cv.still_group_i else "FAIL"
+        lines.append(f"  Still a group I intron:  {status}")
+        if cv.subtype is not None:
+            same = "same as native" if cv.same_subtype else "native was different"
+            lines.append(
+                f"  Best CM match:           {cv.subtype} "
+                f"({cv.score:.1f} bits, E={cv.e_value:.1e}); {same}"
+            )
+        if cv.delta_bits is not None:
+            lines.append(
+                f"  Bit-score vs native:     {cv.delta_bits:+.1f} bits"
+            )
+        lines.append(f"  {cv.note}")
+        lines.append("")
+
     # ── Warnings ──
     if report.warnings:
         lines.append(_header("Warnings"))

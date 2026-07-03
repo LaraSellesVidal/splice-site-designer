@@ -326,14 +326,30 @@ class IntronPrimerDesigner:
 
         return warnings
 
-    def run(self) -> DesignReport:
+    def run(
+        self,
+        assess_thermodynamics: bool = True,
+        validate_construct: bool = False,
+    ) -> DesignReport:
         """Execute the full design pipeline.
+
+        Parameters
+        ----------
+        assess_thermodynamics : bool
+            If True (default) and ViennaRNA is available, score the designed
+            P1/P10 helices for stability and composition-controlled exon
+            specificity.  No scores are added if ViennaRNA is absent.
+        validate_construct : bool
+            If True, rebuild the retargeted intron and re-run cmscan to confirm
+            it still classifies as the expected group I subtype.  Requires
+            Infernal on PATH; off by default because it runs an extra CM scan.
 
         Returns
         -------
         DesignReport
-            Complete design output including primers, mutations, and
-            library information.
+            Complete design output including primers, mutations, library
+            information, and (optionally) thermodynamic and CM-validation
+            assessments.
 
         Raises
         ------
@@ -400,6 +416,46 @@ class IntronPrimerDesigner:
             analysis, p1, p1ex, mutations, fwd_primer, rev_primer, library
         )
 
+        # Optional assessments.
+        thermo = None
+        if assess_thermodynamics:
+            from .models import ThermodynamicAssessment
+            from .thermodynamics import assess as _assess
+
+            t = _assess(
+                p1_exon_segment=p1.exon_segment,
+                new_igs=p1.new_igs,
+                p10_exon_segment=p1ex.exon_segment,
+                new_p1ex_p10=p1ex.new_p1ex_p10,
+            )
+            thermo = ThermodynamicAssessment(
+                viennarna_available=t["viennarna"],
+                p1_dg=t["p1_dg"],
+                p1_stability=t["p1_stability"],
+                p1_specificity_margin=t["p1_specificity_margin"],
+                p1_frac_random_stronger=t["p1_frac_random_stronger"],
+                p10_dg=t["p10_dg"],
+                p10_stability=t["p10_stability"],
+                p10_specificity_margin=t["p10_specificity_margin"],
+                p10_frac_random_stronger=t["p10_frac_random_stronger"],
+                warnings=t["warnings"],
+            )
+            warnings.extend(t["warnings"])
+
+        construct = None
+        if validate_construct:
+            from .construct_validation import validate_construct as _validate
+
+            construct = _validate(
+                intron_seq=self.intron_seq,
+                mutations=mutations,
+                native_subtype=analysis.subtype,
+                native_score=analysis.score,
+                library=self.library_mode is not LibraryMode.NONE,
+            )
+            if construct.performed and not construct.same_subtype:
+                warnings.append(construct.note)
+
         return DesignReport(
             intron_analysis=analysis,
             p1=p1,
@@ -409,4 +465,6 @@ class IntronPrimerDesigner:
             reverse_primer=rev_primer,
             library=library,
             warnings=warnings,
+            thermodynamics=thermo,
+            construct_validation=construct,
         )
